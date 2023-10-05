@@ -1,0 +1,20 @@
+!pip install pandas
+!pip install numpy
+!pip install nltk
+!pip install PySastrawi
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.feature_extraction.text import CountVectorizer
+import nltk
+import string
+import re
+import csv
+from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+
+# import word_tokenize & FreqDist from NLTK
+from nltk.tokenize import word_tokenize
+from nltk.probability import FreqDist
+from nltk.corpus import stopwords
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
