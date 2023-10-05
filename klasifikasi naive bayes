@@ -1,0 +1,148 @@
+!pip install pandas
+!pip install numpy
+!pip install nltk
+
+import pandas as pd
+import numpy as np
+import matplotlib. pyplot as plt
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+from wordcloud import WordCloud
+
+df = pd.read_csv("/content/dataset.csv", sep=";", encoding='cp1252')
+df
+
+# Menghitung jumlah data pada setiap kategori
+value_counts = df['sentimen'].value_counts() #menghitung sentimen pada data
+sizes = value_counts.values
+labels = value_counts.index
+
+# Membuat plot diagram pie
+fig, ax = plt.subplots(figsize=(6, 6))
+explode = (0.1, 0, 0.1)  # Menentukan efek explode
+ax.pie(x=sizes, labels=labels, autopct='%1.1f%%', explode=explode, textprops={'fontsize': 14})
+ax.set_title('Sentiment Polarity on Tweets Data \n (total = {} tweets)'.format(len(df)), fontsize=16, pad=20)
+
+# Menampilkan diagram pie
+plt.show()
+
+import seaborn as sns
+
+# Check class distribution
+sns.countplot(x='sentimen', data=df)
+plt.title('Class Distribution')
+plt.show()
+
+positive_tweets = df[df['sentimen'] == 'positif']
+positive_tweets = positive_tweets[['Text','Tweet_Stemmed','sentimen']]
+positive_tweets.index += 1
+positive_tweets
+
+# Menggabungkan token-token menjadi satu teks
+positive_tweets['Text'] = positive_tweets['Tweet_Stemmed'].apply(lambda text: re.sub(r',', '', text))
+
+# Menggabungkan semua teks menjadi satu teks tunggal
+all_text = ' '.join(positive_tweets['Text'])
+
+# Membuat objek WordCloud
+wordcloud = WordCloud(width=800, height=400, background_color='White').generate(all_text)
+
+# Menampilkan WordCloud
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.title('WordCloud untuk sentimen positif')
+plt.axis('off')
+plt.show()
+
+negative_tweets = df[df['sentimen']  == 'negatif']
+negative_tweets = negative_tweets[['Text', 'sentimen','Tweet_Stemmed']]
+negative_tweets.index += 1
+negative_tweets
+
+# Menggabungkan token-token menjadi satu teks
+negative_tweets['Text'] = negative_tweets['Tweet_Stemmed'].apply(lambda text: re.sub(r',', '', text))
+
+# Menggabungkan semua teks menjadi satu teks tunggal
+all_text = ' '.join(negative_tweets['Text'])
+
+# Membuat objek WordCloud
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_text)
+
+# Menampilkan WordCloud
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.title('WordCloud untuk sentimen negatif')
+plt.axis('off')
+plt.show()
+
+netral_tweets = df[df['sentimen'] == 'netral']
+netral_tweets = netral_tweets[['Text', 'sentimen','Tweet_Stemmed']]
+netral_tweets.index += 1
+netral_tweets
+
+# Menggabungkan token-token menjadi satu teks
+netral_tweets['Text'] = netral_tweets['Tweet_Stemmed'].apply(lambda text: re.sub(r',', '', text))
+
+# Menggabungkan semua teks menjadi satu teks tunggal
+all_text = ' '.join(netral_tweets['Text'])
+
+# Membuat objek WordCloud
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_text)
+
+# Menampilkan WordCloud
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.title('WordCloud untuk sentimen netral')
+plt.axis('off')
+plt.show()
+
+# Memisahkan fitur dan label
+X = df['Tweet_Stemmed']
+y = df['sentimen']
+
+# Ekstraksi fitur menggunakan TF-IDF
+tfidf = TfidfVectorizer(min_df=2)
+X_train_tfidf = tfidf.fit_transform(X)
+# Konversi hasil ekstraksi fitur menjadi dataframe
+features_df = pd.DataFrame(X_train_tfidf.toarray(), columns=tfidf.get_feature_names_out())
+
+# Menampilkan hasil ekstraksi fitur
+features_df
+
+print(X_train_tfidf)
+
+# Pembagian data menjadi data latih dan data uji
+X_train, X_test, y_train, y_test = train_test_split(X_train_tfidf, y, test_size=0.2, random_state=30) #Tetapkan random state, agar ketika dirunning ulang, hasilnya tidak berubah
+
+# Melatih model Naive Bayes
+nb_classifier = MultinomialNB()
+nb_classifier.fit(X_train, y_train)
+
+# Memprediksi sentimen pada data uji
+y_pred = nb_classifier.predict(X_test)
+
+# Evaluasi model
+accuracy = accuracy_score(y_test, y_pred)
+report = classification_report(y_test, y_pred)
+
+
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, cmap="Blues", fmt="d")
+plt.xlabel('Prediksi')
+plt.ylabel('Aktual')
+plt.title('Konfusion Matriks')
+plt.show()
+
+
+print("Accuracy:", accuracy)
+print("Classification Report:")
+print(report)
+
+X
