@@ -1,0 +1,99 @@
+!pip install pandas
+!pip install numpy
+!pip install nltk
+!pip install PySastrawi
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.feature_extraction.text import CountVectorizer
+import nltk
+import string
+import re
+import csv
+from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+
+# import word_tokenize & FreqDist from NLTK
+from nltk.tokenize import word_tokenize
+from nltk.probability import FreqDist
+from nltk.corpus import stopwords
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+df = pd.read_csv("/content/1.kpopppppppppp.csv", sep=";", encoding='cp1252')
+df
+
+#caseFolding
+def case_folding(Text):
+    # konversi huruf kapital ke huruf kecil semua
+    Text = Text.lower()
+    return Text
+
+df['Text'] = df['Text'].str.lower()
+df
+
+#Tokenizing : membagi suatu kalimat menjadi perkata
+def tokenization(Text):
+    Text = re.split('\W+', Text)
+    return Text
+
+df['Tokenization'] = df['Text'].apply(lambda x: tokenization(x.lower()))
+df
+
+Normalization = pd.read_csv('/content/colloquial-indonesian-lexicon.csv')
+Normalization_dict = {}
+
+for index, col in Normalization.iterrows():
+  if col[0] not in Normalization_dict:
+    Normalization_dict[col[0]] = col[1]
+
+def Normalization(document):
+  return [Normalization_dict[term] if term in Normalization_dict else term for term in document]
+
+df['Normalization'] = df['Tokenization'].apply(Normalization)
+df
+
+#Stopword Removal
+# ----------------------- get stopword from NLTK stopword -------------------------------
+# get stopword indonesia
+nltk.download('stopwords')
+stopword = nltk.corpus.stopwords.words('indonesian')
+
+def remove_stopwords(Text):
+    Text = [word for word in Text if word not in stopword]
+    return Text
+
+df['Stop_Removal'] = df['Normalization'].apply(lambda x: remove_stopwords(x))
+df.head(1119)
+
+# STEMMING
+# create stemmer
+factory = StemmerFactory()
+stemmer = factory.create_stemmer()
+
+# stemmed
+def stemmed_wrapper(term):
+    return stemmer.stem(term)
+
+term_dict = {}
+
+for document in df['Stop_Removal']:
+    for term in document:
+        if term not in term_dict:
+            term_dict[term] = ' '
+
+print(len(term_dict))
+print("------------------------")
+
+for term in term_dict:
+    term_dict[term] = stemmed_wrapper(term)
+    print(term,":" ,term_dict[term])
+
+print(term_dict)
+print("------------------------")
+
+# apply stemmed term to dataframe
+def get_stemmed_term(document):
+    return [term_dict[term] for term in document]
+
+df['Tweet_Stemmed'] = df['Stop_Removal'].swifter.apply(get_stemmed_term)
+df
+
